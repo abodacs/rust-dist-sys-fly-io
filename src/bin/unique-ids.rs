@@ -19,7 +19,11 @@ struct UniqueNode {
     id: usize,
 }
 impl Node<(), Payload> for UniqueNode {
-    fn from_init(_stat: (), init: Init) -> anyhow::Result<Self>
+    fn from_init(
+        _stat: (),
+        init: Init,
+        _tx: std::sync::mpsc::Sender<Event<Payload>>,
+    ) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
@@ -29,7 +33,10 @@ impl Node<(), Payload> for UniqueNode {
         })
     }
 
-    fn step(&mut self, input: Message<Payload>, output: &mut io::StdoutLock) -> anyhow::Result<()> {
+    fn step(&mut self, input: Event<Payload>, output: &mut io::StdoutLock) -> anyhow::Result<()> {
+        let Event::Message(input) = input else {
+            panic!("got injected event when there's no event injection");
+        };
         let mut reply = input.into_reply(Some(&mut self.id));
         match reply.body.payload {
             Payload::Generate => {
